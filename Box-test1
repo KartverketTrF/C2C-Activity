@@ -1,0 +1,42 @@
+import os
+import shutil
+import boxsdk
+from github import Github
+
+# Set up Box SDK client with access token
+box_access_token = '<your Box access token>'
+box_client = boxsdk.Client(box_access_token)
+
+# Set up PyGithub client with access token
+github_access_token = '<your GitHub access token>'
+github_client = Github(github_access_token)
+
+# Set up the Box folder to download from
+box_folder_id = '<Box folder ID>'
+box_folder = box_client.folder(box_folder_id)
+
+# Set up the local directory to download to
+local_dir = '<local directory>'
+if not os.path.exists(local_dir):
+    os.makedirs(local_dir)
+
+# Download files from Box folder to local directory
+for item in box_folder.get_items():
+    if isinstance(item, boxsdk.object.file.File):
+        local_path = os.path.join(local_dir, item.name)
+        with open(local_path, 'wb') as f:
+            item.download_to(f)
+
+# Set up the GitHub repository to upload to
+github_repo_name = '<GitHub repository name>'
+github_repo = github_client.get_user().get_repo(github_repo_name)
+
+# Upload files from local directory to GitHub repository
+for filename in os.listdir(local_dir):
+    local_path = os.path.join(local_dir, filename)
+    with open(local_path, 'rb') as f:
+        content = f.read()
+    github_repo.create_file(filename, f'Adding {filename}', content)
+    
+# Clean up local directory
+shutil.rmtree(local_dir)
